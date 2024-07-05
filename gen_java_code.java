@@ -16,43 +16,46 @@ public class User {
         this.profilePicture = profilePicture;
     }
 
-    public boolean isEmailValid() {
+    public boolean isValidEmail(String email) {
+        boolean result = true;
         try {
-            InternetAddress emailAddress = new InternetAddress(email);
-            emailAddress.validate();
+            InternetAddress emailAddr = new InternetAddress(email);
+            emailAddr.validate();
         } catch (AddressException ex) {
-            return false;
+            result = false;
         }
-        return true;
+        return result;
     }
 
-    public boolean isPasswordValid() {
-        String passwordPattern = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$";
-        Pattern pattern = Pattern.compile(passwordPattern);
-        Matcher matcher = pattern.matcher(password);
+    public boolean isValidPassword(String password) {
+        Pattern pattern;
+        Matcher matcher;
+        String PASSWORD_PATTERN = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$";
+        pattern = Pattern.compile(PASSWORD_PATTERN);
+        matcher = pattern.matcher(password);
         return matcher.matches();
     }
 
-    public boolean register() {
-        if (!isEmailValid()) {
-            System.out.println("Error: Invalid email address");
-            return false;
+    public void registerUser(User user) {
+        if (!isValidEmail(user.email)) {
+            System.out.println("Invalid email address.");
+            return;
         }
-        if (!isPasswordValid()) {
-            System.out.println("Error: Password does not meet the criteria");
-            return false;
+
+        if (!isValidPassword(user.password)) {
+            System.out.println("Password must contain at least 8 characters, including at least one uppercase letter, one lowercase letter, one number, and one special character.");
+            return;
         }
-        // Here you would add the code to save the user data into your database
-        // and send the email with the verification link
-        // For now we will just simulate these actions with a print statement
-        System.out.println("User registered successfully. A verification link has been sent to your email address");
-        return true;
+
+        // Code to store user data securely and send confirmation email with verification link goes here
     }
 
-    public void activateAccount() {
-        // Here you would add the code to activate the user account in your database
-        // For now we will just simulate this action with a print statement
-        System.out.println("User account activated successfully. Welcome " + name);
+    public void verifyUser(User user) {
+        // Code to verify user and activate account goes here
+    }
+
+    public void uploadProfilePicture(User user) {
+        // Code to upload profile picture goes here
     }
 }
 ```
