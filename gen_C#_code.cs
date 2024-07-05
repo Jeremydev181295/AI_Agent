@@ -1,70 +1,103 @@
-```C#
+```csharp
 using System;
 using System.ComponentModel.DataAnnotations;
-using System.Text.RegularExpressions;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Net.Mail;
 
-public class RegisterModel
+public class User
 {
     [Required]
-    [Display(Name = "User name")]
-    public string UserName { get; set; }
+    public string Name { get; set; }
 
     [Required]
     [EmailAddress]
-    [Display(Name = "Email")]
     public string Email { get; set; }
 
     [Required]
-    [StringLength(100, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 8)]
     [DataType(DataType.Password)]
-    [Display(Name = "Password")]
+    [PasswordComplexity]
     public string Password { get; set; }
 
-    [DataType(DataType.Upload)]
-    [Display(Name = "Profile Picture")]
     public byte[] ProfilePicture { get; set; }
+}
 
-    public bool IsValidEmail()
+public class PasswordComplexityAttribute : ValidationAttribute
+{
+    protected override ValidationResult IsValid(object value, ValidationContext validationContext)
     {
-        try
-        {
-            var addr = new System.Net.Mail.MailAddress(Email);
-            return addr.Address == Email;
-        }
-        catch
-        {
-            return false;
-        }
+        var password = value as string;
+
+        if (password.Length < 8)
+            return new ValidationResult("Password must be at least 8 characters long.");
+
+        if (!Regex.IsMatch(password, "[A-Z]"))
+            return new ValidationResult("Password must contain at least one uppercase letter.");
+
+        if (!Regex.IsMatch(password, "[a-z]"))
+            return new ValidationResult("Password must contain at least one lowercase letter.");
+
+        if (!Regex.IsMatch(password, "[0-9]"))
+            return new ValidationResult("Password must contain at least one number.");
+
+        if (!Regex.IsMatch(password, "[^a-zA-Z0-9]"))
+            return new ValidationResult("Password must contain at least one special character.");
+
+        return ValidationResult.Success;
+    }
+}
+
+public class UserService
+{
+    private UserDbContext _dbContext;
+    private IEmailService _emailService;
+
+    public UserService(UserDbContext dbContext, IEmailService emailService)
+    {
+        _dbContext = dbContext;
+        _emailService = emailService;
     }
 
-    public bool IsValidPassword()
+    public void RegisterUser(User user)
     {
-        var hasNumber = new Regex(@"[0-9]+");
-        var hasUpperChar = new Regex(@"[A-Z]+");
-        var hasLowerChar = new Regex(@"[a-z]+");
-        var hasSymbols = new Regex(@"[!@#$%^&*()_+=\[{\]};:<>|./?,-]");
+        if (_dbContext.Users.Any(u => u.Email == user.Email))
+            throw new Exception("Email is already registered.");
 
-        if (!hasNumber.IsMatch(Password) || !hasUpperChar.IsMatch(Password) || !hasLowerChar.IsMatch(Password) || !hasSymbols.IsMatch(Password))
-            return false;
+        user.Password = HashPassword(user.Password);
 
-        return true;
+        _dbContext.Users.Add(user);
+        _dbContext.SaveChanges();
+
+        _emailService.SendVerificationEmail(user);
     }
 
-    public string HashPassword()
+    private string HashPassword(string password)
     {
-        using (SHA256 sha256Hash = SHA256.Create())
+        using (var sha256 = SHA256.Create())
         {
-            byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(Password));
-
-            StringBuilder builder = new StringBuilder();
-            for (int i = 0; i < bytes.Length; i++)
-            {
-                builder.Append(bytes[i].ToString("x2"));
-            }
-            return builder.ToString();
+            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            return BitConverter.ToString(hashedBytes).Replace("-", "").ToLower();
         }
+    }
+}
+
+public interface IEmailService
+{
+    void SendVerificationEmail(User user);
+}
+
+public class EmailService : IEmailService
+{
+    public void SendVerificationEmail(User user)
+    {
+        var mailMessage = new MailMessage();
+        mailMessage.To.Add(user.Email);
+        mailMessage.Subject = "Verify your account";
+        mailMessage.Body = "Please click the link to verify your account.";
+
+        var smtpClient = new SmtpClient();
+        smtpClient.Send(mailMessage);
     }
 }
 ```
