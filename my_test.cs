@@ -1,38 +1,53 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+```java
+import java.util.regex.*;
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
 
-namespace sample.Controllers
-{
-    [ApiController]
-    [Route("[controller]")]
-    public class WeatherForecastController : ControllerBase
-    {
-        private static readonly string[] Summaries = new[]
-        {
-            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-        };
+public class User {
+    private String name;
+    private String email;
+    private String password;
+    private String profilePicture;
 
-        private readonly ILogger<WeatherForecastController> _logger;
+    public User(String name, String email, String password, String profilePicture) {
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.profilePicture = profilePicture;
+    }
 
-        public WeatherForecastController(ILogger<WeatherForecastController> logger)
-        {
-            _logger = logger;
+    public boolean isValidEmail(String email) {
+        boolean result = true;
+        try {
+            InternetAddress emailAddr = new InternetAddress(email);
+            emailAddr.validate();
+        } catch (AddressException ex) {
+            result = false;
+        }
+        return result;
+    }
+
+    public boolean isValidPassword(String password) {
+        Pattern pattern;
+        Matcher matcher;
+        String PASSWORD_PATTERN = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$";
+        pattern = Pattern.compile(PASSWORD_PATTERN);
+        matcher = pattern.matcher(password);
+        return matcher.matches();
+    }
+
+    public void registerUser() {
+        if (!isValidEmail(this.email)) {
+            System.out.println("Invalid email address.");
+            return;
         }
 
-        [HttpGet(Name = "GetWeatherForecast")]
-        public IEnumerable<WeatherForecast> Get()
-        {
-            var rng = new Random();
-            return Enumerable.Range(1, 5).Select(index => new WeatherForecast
-            {
-                Date = DateTime.Now.AddDays(index),
-                TemperatureC = rng.Next(-20, 55),
-                Summary = Summaries[rng.Next(Summaries.Length)]
-            })
-            .ToArray();
+        if (!isValidPassword(this.password)) {
+            System.out.println("Password must contain at least 8 characters, including at least one uppercase letter, one lowercase letter, one number, and one special character.");
+            return;
         }
+
+        // Code to store user data and send confirmation email goes here
     }
 }
+```
